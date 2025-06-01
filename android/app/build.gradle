@@ -116,4 +116,14 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // // Firebase SDK setup (using BoM - recommended)
+    // implementation platform('com.google.firebase:firebase-bom:33.14.0')
+    
+    // // Add the Firebase services you want to use:
+    // implementation 'com.google.firebase:firebase-analytics'
+    // implementation 'com.google.firebase:firebase-auth'
+    // implementation 'com.google.firebase:firebase-crashlytics'
 }
+
+apply plugin: 'com.google.gms.google-services'
