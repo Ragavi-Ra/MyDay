@@ -1,9 +1,9 @@
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
+import Config from 'react-native-config';
 
 GoogleSignin.configure({
-  webClientId: '188586900910-njpvh7l5b1f3e2et7cnkles3kj93h6gd.apps.googleusercontent.com',
-  projectId: "myday-13"
+  webClientId: Config.GOOGLE_WEB_CLIENT_ID
 });
 
 export { auth, GoogleSignin };

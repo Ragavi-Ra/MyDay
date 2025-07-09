@@ -1,17 +1,7 @@
-import React, { useState } from 'react';
-import {
-  Alert,
-  Platform,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Alert, Platform, Text, TextInput, TouchableOpacity, View, StyleSheet, ScrollView } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 
@@ -21,36 +11,62 @@ type JournalTypes = {
   Title: string;
 };
 
-const JournalPage = () => {
+const JournalPage = ({ navigation, route }: any) => {
   const [show, setShow] = useState(false);
 
-  const {
-    control,
-    handleSubmit,
-  } = useForm<JournalTypes>();
+  const { control, handleSubmit, reset, watch, } = useForm<JournalTypes>();
+
+  const watchedTitle = watch('Title');
+  const watchedJournal = watch('Journal');
+  const isButtonDisabled = !watchedTitle?.trim() || !watchedJournal?.trim();
+
+  const editingJournal = route?.params?.journal;
+
+  //Displayes current value as a placeholder for editing journals
+  useEffect(() => {
+    if (editingJournal) {
+      reset({
+        Title: editingJournal.title,
+        Journal: editingJournal.journal,
+        date: new Date(editingJournal.date),
+      });
+    }
+  }, [editingJournal]);
 
   const onSubmit = async (data: JournalTypes) => {
     try {
       const currentUser = auth().currentUser;
-      console.log(currentUser)
-      const userId = currentUser?.uid
-      console.log(userId)
-      const journalId = firestore().collection('users').doc().id
-      console.log(journalId)
+      const userId = currentUser?.uid;
+      if (!userId) return;
 
-      await firestore()
+      const journalRef = firestore()
         .collection('users')
         .doc(userId)
-        .collection('journals')
-        .doc(journalId)
-        .set({
-          title: data.Title,
-          journal: data.Journal,
-          date: data.date.toISOString(),
-          // createdAt: firestore.FieldValue.serverTimestamp(),
-        });
+        .collection('journals');
 
-      Alert.alert('Saved', 'Your journal was saved successfully!');
+      if (editingJournal) {
+        //Editing journal
+        await journalRef.doc(editingJournal.id).update({
+          title: data?.Title,
+          journal: data?.Journal,
+          date: data.date.toISOString(),
+        });
+        Alert.alert('Updated', 'Your journal was updated successfully!');
+      } else {
+        //New journal
+        const journalId = journalRef.doc().id;
+        await journalRef.doc(journalId).set({
+          title: data?.Title,
+          journal: data?.Journal,
+          date: data.date.toISOString(),
+        });
+        Alert.alert('Saved', 'Your journal was saved successfully!');
+      }
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home', params: { refresh: true } }],
+      });
     } catch (error) {
       console.error('Error saving journal:', error);
       Alert.alert('Error', 'Something went wrong while saving your journal.');
@@ -132,8 +148,12 @@ const JournalPage = () => {
         />
 
         <TouchableOpacity
-          style={styles.submitButton}
+          style={[
+            styles.submitButton,
+            isButtonDisabled && { backgroundColor: '#ccc' },
+          ]}
           onPress={handleSubmit(onSubmit)}
+          disabled={isButtonDisabled}
         >
           <Text style={styles.buttonText}>Done</Text>
         </TouchableOpacity>
